@@ -1165,52 +1165,54 @@ const App = () => {
           </div>
         )}
 
-        <footer className="flex flex-col items-end gap-12 mt-auto pb-6 pt-20">
-          <button onClick={toggleDarkMode} className="text-[9px] font-black uppercase tracking-[0.4em] opacity-20 hover:opacity-100 transition-opacity flex items-center gap-2">
+       <footer className="flex flex-col items-end gap-12 mt-auto pb-6 pt-20">
+          <button 
+            onClick={toggleDarkMode} 
+            className="text-[9px] font-black uppercase tracking-[0.4em] opacity-20 hover:opacity-100 transition-opacity flex items-center gap-2"
+          >
             {darkMode ? <Sun size={12}/> : <Moon size={12}/>} Mode
           </button>
-          <div className="text-right border-r-[8px] pr-6 border-current border-opacity-10 font-mono font-black italic tracking-tight leading-none opacity-80 uppercase">
-            <p className="text-[18px] md:text-[22px] mb-2">If you’re here,</p>
-            <p className="text-[18px] md:text-[22px]">You already know why.</p>
+          
+          <div className="text-right border-r-[8px] pr-6 border-current border-opacity-10 font-mono font-black italic tracking-tight leading-none opacity-80 uppercase text-current">
+            <p className="text-[18px] md:text-[22px] mb-2 leading-none">You already know why.</p>
           </div>
+
           <div className="flex gap-10">
-            <a href="https://pump.fun" target="_blank" rel="noopener noreferrer" className="opacity-40 hover:opacity-100 transition-all"><Zap size={22} fill="currentColor" stroke="none" /></a>
-            <button onClick={() => setShowXNote(true)} className="opacity-40 hover:opacity-100 transition-all">
+            <a 
+              href="https://pump.fun/4myTk24zifHrLYTL5eD3ZnK9PuKyPBcKQvEzc7MPpump/" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="opacity-40 hover:opacity-100 transition-all text-current"
+            >
+              <Zap size={22} fill="currentColor" stroke="none" />
+            </a>
+            
+            {/* DIRECT ONE-TAP X COMMUNITY LINK */}
+            <a 
+              href="https://x.com/i/communities/2013132571266134521" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="opacity-40 hover:opacity-100 transition-all text-current"
+            >
               <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
               </svg>
-            </button>
+            </a>
           </div>
-          <div className="flex items-center gap-4"><div className="h-[1px] w-16 opacity-20 bg-current" /><span className="text-[9px] font-black uppercase tracking-[1.5em] opacity-10 font-mono">RIGHT</span></div>
+          
+          <div className="flex items-center gap-4 text-current">
+            <div className="h-[1px] w-16 opacity-20 bg-current" />
+            <span className="text-[9px] font-black uppercase tracking-[1.5em] opacity-10 font-mono">RIGHT</span>
+          </div>
         </footer>
       </div>
 
-      {showXNote && (
-      <div className="fixed inset-0 z-[110] flex justify-end backdrop-blur-md bg-black/40 p-4 md:p-12" onClick={() => setShowXNote(false)}>
-     <div className={`w-full max-w-sm h-fit my-auto p-10 border-r-[12px] shadow-2xl animate-scale-up ${darkMode ? 'bg-black border-white/20 text-white' : 'bg-white border-black/10 text-black'}`} onClick={e => e.stopPropagation()}>
-        <X size={20} className="mb-8 cursor-pointer opacity-40 hover:opacity-100" onClick={() => setShowXNote(false)}/>
-        <h4 className="text-xl font-black uppercase italic mb-6 leading-none tracking-tighter">X // Signal_Update</h4>
-        <p className="text-sm font-bold opacity-60 leading-relaxed text-right uppercase tracking-tighter leading-tight mb-8">The only right community out there.</p>
-        
-        <a 
-          href="https://x.com/i/communities/2013132571266134521" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className={`block w-full py-4 border border-current text-center text-[10px] font-black uppercase tracking-[0.4em] transition-all hover:bg-current hover:text-current-bg`}
-        >
-          Join Community
-        </a>
-
-        <div className="h-[1px] w-20 bg-current opacity-20 mt-8 ml-auto" />
-     </div>
-  </div>
-)}
-
+      {/* Artifact Preview Modal */}
       {showModal && generatedMeme && (
         <div className="fixed inset-0 z-[100] flex justify-end backdrop-blur-xl bg-black/60 p-4 md:p-12 lg:p-24" onClick={() => setShowModal(false)}>
            <div className="w-full max-w-5xl h-fit my-auto bg-black border-r-[24px] border-white/10 p-4 shadow-2xl relative animate-scale-up" onClick={e => e.stopPropagation()}>
-              <button onClick={() => setShowModal(false)} className="absolute -top-12 right-0 text-white/40 uppercase font-black text-[10px] tracking-widest flex items-center gap-2 hover:text-white transition-colors">Close <X size={14}/></button>
-              <img src={generatedMeme} className="w-full h-auto" alt="" />
+              <button onClick={() => setShowModal(false)} className="absolute -top-12 right-0 text-white/40 uppercase font-black text-[10px] tracking-widest flex items-center gap-2 hover:text-white transition-colors font-mono">Close Artifact <X size={14}/></button>
+              <img src={generatedMeme} className="w-full h-auto" alt="Full Artifact" />
            </div>
         </div>
       )}
