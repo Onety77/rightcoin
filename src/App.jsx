@@ -174,7 +174,7 @@ const RPC_ENDPOINTS = [
 ];
 
 const GOV_WALLET_ADDRESSES = {
-  DEV: "D8n8Dy6DWC9691mR4NroSA9TdxXBxDV6Rr639RapanS4",
+  DEV: "Phexh3Wnpc9TT1ox5HRxmX58ejWTJmRz1FgXFKUPArv",
   CHARITY: "EECxNuCaYwT5iaN8deCZu1PjuM2YUfZTyEvzrsgtYaNq",
   MARKETING: "Hm6DguHHkX7JJA6bEWKAJv6s6Kdr6k29wSidp1it61MY"
 };
@@ -486,7 +486,7 @@ export const ChatApp = ({ db, auth, appId, darkMode, setView }) => {
   const adminRef = useRef(null);
   const longPressTimer = useRef(null);
   const touchStartPos = useRef({ x: 0, y: 0 });
-  const CA_INTERNAL = "3vsKvFYRbn5Mrfk5mJsxEDto2UwmrcWtqvC5o7SYpump";
+  const CA_INTERNAL = "4myTk24zifHrLYTL5eD3ZnK9PuKyPBcKQvEzc7MPpump";
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -902,7 +902,7 @@ const App = () => {
   const [showModal, setShowModal] = useState(false);
   const [showXNote, setShowXNote] = useState(false);
   const [logoPulse, setLogoPulse] = useState(false);
-  const ca = "3vsKvFYRbn5Mrfk5mJsxEDto2UwmrcWtqvC5o7SYpump";
+  const ca = "4myTk24zifHrLYTL5eD3ZnK9PuKyPBcKQvEzc7MPpump";
 
   // AI State Logic
   const [uploadImage, setUploadImage] = useState(null);
@@ -1186,15 +1186,25 @@ const App = () => {
       </div>
 
       {showXNote && (
-        <div className="fixed inset-0 z-[110] flex justify-end backdrop-blur-md bg-black/40 p-4 md:p-12" onClick={() => setShowXNote(false)}>
-           <div className={`w-full max-w-sm h-fit my-auto p-10 border-r-[12px] shadow-2xl animate-scale-up ${darkMode ? 'bg-black border-white/20 text-white' : 'bg-white border-black/10 text-black'}`} onClick={e => e.stopPropagation()}>
-              <X size={20} className="mb-8 cursor-pointer opacity-40 hover:opacity-100" onClick={() => setShowXNote(false)}/>
-              <h4 className="text-xl font-black uppercase italic mb-6">X // Signal_Update</h4>
-              <p className="text-sm font-bold opacity-60 leading-relaxed text-right uppercase tracking-tighter leading-tight">Right community will make the right X community and it will be updated.</p>
-              <div className="h-[1px] w-20 bg-current opacity-20 mt-8" />
-           </div>
-        </div>
-      )}
+      <div className="fixed inset-0 z-[110] flex justify-end backdrop-blur-md bg-black/40 p-4 md:p-12" onClick={() => setShowXNote(false)}>
+     <div className={`w-full max-w-sm h-fit my-auto p-10 border-r-[12px] shadow-2xl animate-scale-up ${darkMode ? 'bg-black border-white/20 text-white' : 'bg-white border-black/10 text-black'}`} onClick={e => e.stopPropagation()}>
+        <X size={20} className="mb-8 cursor-pointer opacity-40 hover:opacity-100" onClick={() => setShowXNote(false)}/>
+        <h4 className="text-xl font-black uppercase italic mb-6 leading-none tracking-tighter">X // Signal_Update</h4>
+        <p className="text-sm font-bold opacity-60 leading-relaxed text-right uppercase tracking-tighter leading-tight mb-8">The community frequency has been established. Enter the right signal below.</p>
+        
+        <a 
+          href="https://x.com/i/communities/2013132571266134521" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className={`block w-full py-4 border border-current text-center text-[10px] font-black uppercase tracking-[0.4em] transition-all hover:bg-current hover:text-current-bg`}
+        >
+          Join Community
+        </a>
+
+        <div className="h-[1px] w-20 bg-current opacity-20 mt-8 ml-auto" />
+     </div>
+  </div>
+)}
 
       {showModal && generatedMeme && (
         <div className="fixed inset-0 z-[100] flex justify-end backdrop-blur-xl bg-black/60 p-4 md:p-12 lg:p-24" onClick={() => setShowModal(false)}>
