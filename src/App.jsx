@@ -1190,7 +1190,7 @@ const App = () => {
      <div className={`w-full max-w-sm h-fit my-auto p-10 border-r-[12px] shadow-2xl animate-scale-up ${darkMode ? 'bg-black border-white/20 text-white' : 'bg-white border-black/10 text-black'}`} onClick={e => e.stopPropagation()}>
         <X size={20} className="mb-8 cursor-pointer opacity-40 hover:opacity-100" onClick={() => setShowXNote(false)}/>
         <h4 className="text-xl font-black uppercase italic mb-6 leading-none tracking-tighter">X // Signal_Update</h4>
-        <p className="text-sm font-bold opacity-60 leading-relaxed text-right uppercase tracking-tighter leading-tight mb-8">The community frequency has been established. Enter the right signal below.</p>
+        <p className="text-sm font-bold opacity-60 leading-relaxed text-right uppercase tracking-tighter leading-tight mb-8">The only right community out there.</p>
         
         <a 
           href="https://x.com/i/communities/2013132571266134521" 
