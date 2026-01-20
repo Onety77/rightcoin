@@ -77,7 +77,8 @@ import {
   Trash2,
   CheckCircle,
   Link as LinkIcon,
-  Calendar
+  Calendar,
+  Gift, Flame, Layers
 } from 'lucide-react';
 
 
@@ -175,8 +176,10 @@ const RPC_ENDPOINTS = [
 
 const GOV_WALLET_ADDRESSES = {
   DEV: "Phexh3Wnpc9TT1ox5HRxmX58ejWTJmRz1FgXFKUPArv",
-  CHARITY: "EECxNuCaYwT5iaN8deCZu1PjuM2YUfZTyEvzrsgtYaNq",
-  MARKETING: "Hm6DguHHkX7JJA6bEWKAJv6s6Kdr6k29wSidp1it61MY"
+  CHARITY: "D8n8Dy6DWC9691mR4NroSA9TdxXBxDV6Rr639RapanS4",
+  MARKETING: "MARKETING_WALLET_ADDRESS_TBA",
+  GIVEAWAY: "GIVEAWAY_WALLET_ADDRESS_TBA",
+  BURN: "BURN_WALLET_ADDRESS_TBA"
 };
 
 // --- MODULE 1: GOVERNANCE MODULE ---
@@ -185,9 +188,11 @@ export const GovernanceModule = ({ db, auth, appId, darkMode, tokenCA }) => {
   const [solPrice, setSolPrice] = useState(0);
   const [tokenData, setTokenData] = useState({ price: "$0.00", symbol: "IT" });
   const [loading, setLoading] = useState(true);
-  const [balances, setBalances] = useState({ dev: 0, charity: 0, marketing: 0 });
+  const [balances, setBalances] = useState({ dev: 0, charity: 0, marketing: 0, giveaway: 0, burn: 0 });
   const [ledgerData, setLedgerData] = useState({
     allocatedBalance: 0,
+    giveawayTotalGifted: 0,
+    burnTotalBurned: 0,
     notice: "Creator rewards are mirrored below. All moves community governed.",
     charityTask: { id1: 'c1', name1: '', link1: '', img1: '', id2: 'c2', name2: '', link2: '', img2: '', target: 5 },
     marketingTask: { id1: 'm1', name1: '', id2: 'm2', name2: '', target: 10 },
@@ -233,12 +238,14 @@ export const GovernanceModule = ({ db, auth, appId, darkMode, tokenCA }) => {
   }, []);
 
   const updateAllData = useCallback(async () => {
-    const [d, c, m] = await Promise.all([
+    const [d, c, m, g, b] = await Promise.all([
       fetchSolBalance(GOV_WALLET_ADDRESSES.DEV),
       fetchSolBalance(GOV_WALLET_ADDRESSES.CHARITY),
-      fetchSolBalance(GOV_WALLET_ADDRESSES.MARKETING)
+      fetchSolBalance(GOV_WALLET_ADDRESSES.MARKETING),
+      fetchSolBalance(GOV_WALLET_ADDRESSES.GIVEAWAY),
+      fetchSolBalance(GOV_WALLET_ADDRESSES.BURN)
     ]);
-    setBalances({ dev: d, charity: c, marketing: m });
+    setBalances({ dev: d, charity: c, marketing: m, giveaway: g, burn: b });
     fetchPrice();
     try {
       const resp = await fetch('https://api.jup.ag/price/v2?ids=' + SOL_CA);
@@ -267,12 +274,16 @@ export const GovernanceModule = ({ db, auth, appId, darkMode, tokenCA }) => {
             ...prev,
             ...data,
             allocatedBalance: Number(data.allocatedBalance) || 0,
+            giveawayTotalGifted: Number(data.giveawayTotalGifted) || 0,
+            burnTotalBurned: Number(data.burnTotalBurned) || 0,
             history: data.history || []
           }));
         } else {
           setDoc(govDoc, { 
             votes: { c1: 0, c2: 0, m1: 0, m2: 0 }, 
             allocatedBalance: 0, 
+            giveawayTotalGifted: 0,
+            burnTotalBurned: 0,
             notice: "Reviewing targets...", 
             charityTask: { target: 5 }, 
             marketingTask: { target: 10 }, 
@@ -306,7 +317,7 @@ export const GovernanceModule = ({ db, auth, appId, darkMode, tokenCA }) => {
     } catch (e) { console.error("Vote failed", e); }
   };
 
-  const ProgressCard = ({ title, balance, target, icon: Icon, color }) => {
+  const ProgressCard = ({ title, balance, target, icon: Icon, color, subText }) => {
     const val = Number(balance) || 0;
     const progress = Math.min((val / target) * 100, 100);
     const isUnlocked = val >= target;
@@ -325,16 +336,16 @@ export const GovernanceModule = ({ db, auth, appId, darkMode, tokenCA }) => {
             </div>
           </div>
           <div className={`flex items-center gap-2 text-[7px] font-black uppercase px-2 py-1 rounded transition-colors ${isUnlocked ? 'bg-green-500 text-black' : 'opacity-20 bg-current'}`}>
-            {isUnlocked ? <Unlock size={8} /> : <Lock size={8} />} {isUnlocked ? 'Decision Open' : 'Funding'}
+            {isUnlocked ? <Unlock size={8} /> : <Lock size={8} />} {isUnlocked ? 'Ready' : 'Funding'}
           </div>
         </div>
         <div className="space-y-1">
           <div className={`w-full h-1 overflow-hidden rounded-full ${darkMode ? 'bg-white/10' : 'bg-black/10'}`}>
             <div className="h-full transition-all duration-1000 ease-out" style={{ width: `${progress}%`, backgroundColor: color }} />
           </div>
-          <div className="flex justify-between text-[6px] font-black uppercase opacity-20">
-            <span>Goal: {target} SOL</span>
-            <span>{progress.toFixed(0)}% Complete</span>
+          <div className="flex justify-between text-[6px] font-black uppercase">
+            <span className="opacity-20">Target: {target} SOL</span>
+            {subText && <span className="opacity-60 italic">{subText}</span>}
           </div>
         </div>
       </div>
@@ -363,7 +374,7 @@ export const GovernanceModule = ({ db, auth, appId, darkMode, tokenCA }) => {
             <img src="/pfps/mask.jpg" className="w-4 h-4 object-cover grayscale rounded-full border border-[#f59e0b]" alt="" />
             <span className="text-[7px] font-black uppercase tracking-widest text-[#f59e0b]">Official Notice</span>
          </div>
-         <p className="text-[8px] font-bold uppercase leading-tight opacity-70 tracking-tighter">
+         <p className="text-[8px] font-bold uppercase leading-tight opacity-70 tracking-tighter text-left">
            {ledgerData.notice}
          </p>
       </div>
@@ -380,6 +391,26 @@ export const GovernanceModule = ({ db, auth, appId, darkMode, tokenCA }) => {
           </div>
           <div className="absolute top-4 right-4 opacity-10"><Shield size={24}/></div>
         </div>
+
+        {/* Giveaway Vault */}
+        <ProgressCard 
+          title="Community Giveaway" 
+          balance={balances.giveaway} 
+          target={0.5} 
+          icon={Gift} 
+          color="#f59e0b" 
+          subText={`Gifted: ${ledgerData.giveawayTotalGifted.toFixed(2)} SOL`}
+        />
+
+        {/* Burn Vault */}
+        <ProgressCard 
+          title="Buyback & Burn" 
+          balance={balances.burn} 
+          target={0.5} 
+          icon={Flame} 
+          color="#ef4444" 
+          subText={`Burned: ${ledgerData.burnTotalBurned.toFixed(2)} SOL`}
+        />
 
         <ProgressCard title="Charity Choice" balance={balances.charity} target={ledgerData.charityTask.target || 5} icon={HeartHandshake} color="#10b981" />
         <ProgressCard title="Strategy Growth" balance={balances.marketing} target={ledgerData.marketingTask.target || 10} icon={TrendingUp} color="#3b82f6" />
@@ -444,7 +475,7 @@ export const GovernanceModule = ({ db, auth, appId, darkMode, tokenCA }) => {
             <div className="flex items-center gap-4 text-current">
               <div className="text-right">
                 <p className="text-[9px] font-black italic leading-none">{item.amount}</p>
-                <p className="text-[6px] text-green-500 font-black uppercase italic mt-1 flex items-center gap-1 leading-none"><CheckCircle size={8}/> Confirmed</p>
+                <p className="text-[6px] text-green-500 font-black uppercase italic mt-1 flex items-center gap-1 leading-none"><CheckCircle2 size={8}/> Confirmed</p>
               </div>
               {item.link && (
                 <a href={item.link} target="_blank" rel="noopener noreferrer" className="p-2 border border-current border-opacity-10 rounded hover:bg-current hover:text-current-bg transition-all opacity-40 group-hover/hist:opacity-100">
@@ -460,6 +491,256 @@ export const GovernanceModule = ({ db, auth, appId, darkMode, tokenCA }) => {
     </div>
   );
 };
+
+
+// --- MODULE 2: MASTER ADMIN PANEL (God Mode) ---
+export const MasterAdminPanel = ({ db, appId, setView }) => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!db || !appId) return;
+    const govDoc = doc(db, 'artifacts', appId, 'public', 'data', 'governance', 'state');
+    return onSnapshot(govDoc, (snap) => {
+      if (snap.exists()) setData(snap.data());
+      setLoading(false);
+    });
+  }, [db, appId]);
+
+  const save = async (updates) => {
+    setSaving(true);
+    const govDoc = doc(db, 'artifacts', appId, 'public', 'data', 'governance', 'state');
+    try {
+      // Ensure numeric casting for inputs to prevent sync issues
+      if (updates.allocatedBalance !== undefined) updates.allocatedBalance = Number(updates.allocatedBalance);
+      if (updates.charityTask?.target !== undefined) updates.charityTask.target = Number(updates.charityTask.target);
+      if (updates.marketingTask?.target !== undefined) updates.marketingTask.target = Number(updates.marketingTask.target);
+      
+      await updateDoc(govDoc, updates);
+    } catch (e) { console.error("Save Error", e); }
+    setSaving(false);
+  };
+
+  /**
+   * AUTOMATED VAULT COMPLETION LOGIC
+   */
+  const handleVaultDone = async (type) => {
+    const amount = 0.5;
+    const txLink = prompt(`Provide transaction proof link for the 0.5 SOL ${type}:`);
+    if (!txLink) return;
+
+    const newLog = {
+      date: new Date().toISOString().split('T')[0],
+      type: type === 'giveaway' ? 'Giveaway' : 'Burn',
+      task: type === 'giveaway' ? 'Community Gift Distribution' : 'Manual Token Buyback & Burn',
+      amount: `${amount} SOL`,
+      link: txLink
+    };
+
+    const updates = {
+      history: [newLog, ...(data.history || [])],
+      [type === 'giveaway' ? 'giveawayTotalGifted' : 'burnTotalBurned']: increment(amount)
+    };
+
+    await save(updates);
+  };
+
+  const handleResetSlot = async (taskId, category) => {
+    const govDoc = doc(db, 'artifacts', appId, 'public', 'data', 'governance', 'state');
+    const updates = { [`votes.${taskId}`]: 0 };
+    if (category === 'charity') {
+      updates.charityTask = { ...data.charityTask, [taskId === 'c1' ? 'name1' : 'name2']: '', [taskId === 'c1' ? 'link1' : 'link2']: '', [taskId === 'c1' ? 'img1' : 'img2']: '' };
+    } else {
+      updates.marketingTask = { ...data.marketingTask, [taskId === 'm1' ? 'name1' : 'name2']: '' };
+    }
+    await updateDoc(govDoc, updates);
+  };
+
+  if (loading || !data) return <div className="p-20 text-center opacity-40 font-mono uppercase text-xs animate-pulse">Syncing Master Node...</div>;
+
+  return (
+    <div className="w-full space-y-12 animate-fade-in font-mono pb-20 text-left">
+       <header className="flex justify-between items-center border-b border-red-500/20 pb-4">
+          <h3 className="text-xl font-black italic uppercase text-red-500 flex items-center gap-2"><Cpu size={20}/> ADMIN PANEL</h3>
+          <button onClick={() => setView('home')} className="text-[9px] uppercase font-black opacity-40 hover:opacity-100 transition-opacity">Exit Panel</button>
+       </header>
+
+       {/* VAULT LOGGING TOOLS */}
+       <div className="p-4 border border-current border-opacity-10 bg-white/[0.02] space-y-3">
+          <span className="text-[8px] font-black uppercase opacity-40 block">Vault Completion Shortcuts</span>
+          <div className="grid grid-cols-2 gap-2">
+             <button onClick={() => handleVaultDone('giveaway')} className="py-2 bg-amber-500 text-black font-black text-[10px] uppercase flex items-center justify-center gap-2 rounded hover:bg-amber-400">
+                <Gift size={12}/> Log Giveaway (0.5)
+             </button>
+             <button onClick={() => handleVaultDone('burn')} className="py-2 bg-red-600 text-white font-black text-[10px] uppercase flex items-center justify-center gap-2 rounded hover:bg-red-500">
+                <Flame size={12}/> Log Burn (0.5)
+             </button>
+          </div>
+       </div>
+
+       {/* GLOBAL: NOTICE SECTION */}
+       <div className="p-4 border border-current border-opacity-10 bg-white/[0.02] space-y-4">
+          <div className="space-y-2">
+             <label className="text-[8px] font-black uppercase opacity-40 block">Official Notice Statement</label>
+             <textarea value={data.notice || ""} onChange={e => setData({...data, notice: e.target.value})} className="w-full bg-white/5 border border-current border-opacity-10 p-3 text-[10px] font-bold h-20 outline-none focus:border-red-500/50" />
+          </div>
+          <button onClick={() => save({ notice: data.notice })} className="w-full py-2 bg-white text-black font-black uppercase text-[10px] flex items-center justify-center gap-2 hover:bg-zinc-200">
+             {saving ? <RefreshCw className="animate-spin" size={12}/> : <Save size={12}/>} Update Announcement
+          </button>
+       </div>
+
+       {/* GLOBAL: ALLOCATED SECTION */}
+       <div className="p-4 border border-current border-opacity-10 bg-white/[0.02] space-y-4">
+          <div className="space-y-2 text-left">
+             <label className="text-[8px] font-black uppercase opacity-40 block">Allocated SOL (Real-time)</label>
+             <input 
+               type="number" 
+               value={data.allocatedBalance === 0 ? "" : data.allocatedBalance} 
+               placeholder="0.00"
+               onChange={e => setData({...data, allocatedBalance: e.target.value === "" ? 0 : parseFloat(e.target.value)})} 
+               className="w-full bg-white/5 border border-current border-opacity-10 p-3 text-xs font-black outline-none focus:border-red-500/50" 
+             />
+          </div>
+          <button onClick={() => save({ allocatedBalance: data.allocatedBalance })} className="w-full py-2 bg-red-500 text-black font-black uppercase text-[10px] flex items-center justify-center gap-2 hover:bg-red-400">
+             {saving ? <RefreshCw className="animate-spin" size={12}/> : <Save size={12}/>} Sync Allocation
+          </button>
+       </div>
+
+       <div className="space-y-8 border-t border-current border-opacity-10 pt-8">
+          <div className="space-y-6">
+             <span className="text-[10px] font-black uppercase tracking-widest opacity-80 block">Active Proposals Logic</span>
+             
+             {/* Charity Configuration */}
+             <div className="p-4 border border-dashed border-current border-opacity-20 space-y-6">
+                <div className="flex justify-between items-center"><span className="text-[8px] font-black uppercase opacity-40">Charity Section</span></div>
+                <div className="space-y-6">
+                   <div className="space-y-1">
+                      <label className="text-[7px] uppercase opacity-30">Goal Target (SOL)</label>
+                      <input type="number" value={data.charityTask?.target || ""} onChange={e => setData({...data, charityTask: {...data.charityTask, target: e.target.value}})} className="w-24 bg-white/5 border p-2 text-xs font-black outline-none" />
+                   </div>
+                   {['c1', 'c2'].map(id => (
+                     <div key={id} className="space-y-2 border-b border-white/5 pb-4 text-left">
+                        <div className="flex justify-between items-center mb-1">
+                           <span className="text-[7px] font-black opacity-30 uppercase">Option {id.toUpperCase()} (Votes: {data.votes?.[id] || 0})</span>
+                           <button onClick={() => handleResetSlot(id, 'charity')} className="text-red-500 hover:text-red-400"><Trash2 size={12}/></button>
+                        </div>
+                        <input placeholder="Name" value={data.charityTask?.[id === 'c1' ? 'name1' : 'name2'] || ""} onChange={e => setData({...data, charityTask: {...data.charityTask, [id === 'c1' ? 'name1' : 'name2']: e.target.value}})} className="w-full bg-white/5 border p-2 text-[9px] font-black outline-none" />
+                        <div className="grid grid-cols-2 gap-2">
+                           <input placeholder="Link" value={data.charityTask?.[id === 'c1' ? 'link1' : 'link2'] || ""} onChange={e => setData({...data, charityTask: {...data.charityTask, [id === 'c1' ? 'link1' : 'link2']: e.target.value}})} className="bg-white/5 border p-2 text-[8px] font-mono outline-none" />
+                           <input placeholder="Img URL" value={data.charityTask?.[id === 'c1' ? 'img1' : 'img2'] || ""} onChange={e => setData({...data, charityTask: {...data.charityTask, [id === 'c1' ? 'img1' : 'img2']: e.target.value}})} className="bg-white/5 border p-2 text-[8px] font-mono outline-none" />
+                        </div>
+                     </div>
+                   ))}
+                </div>
+                <button onClick={() => save({ charityTask: data.charityTask })} className="w-full py-2 bg-white/10 text-[9px] font-black uppercase hover:bg-white/20">Sync Charity Configuration</button>
+             </div>
+
+             {/* Marketing Configuration */}
+             <div className="p-4 border border-dashed border-current border-opacity-20 space-y-6">
+                <span className="text-[8px] font-black uppercase opacity-40">Growth Section</span>
+                <div className="space-y-4">
+                   <div className="space-y-1">
+                      <label className="text-[7px] uppercase opacity-30">Goal Target (SOL)</label>
+                      <input type="number" value={data.marketingTask?.target || ""} onChange={e => setData({...data, marketingTask: {...data.marketingTask, target: e.target.value}})} className="w-24 bg-white/5 border p-2 text-xs font-black outline-none" />
+                   </div>
+                   {['m1', 'm2'].map(id => (
+                     <div key={id} className="space-y-2 border-b border-white/5 pb-4 text-left">
+                        <div className="flex justify-between items-center mb-1">
+                           <span className="text-[7px] font-black opacity-30 uppercase">Option {id.toUpperCase()} (Votes: {data.votes?.[id] || 0})</span>
+                           <button onClick={() => handleResetSlot(id, 'marketing')} className="text-red-500 hover:text-red-400"><Trash2 size={12}/></button>
+                        </div>
+                        <input placeholder="Strategy Name" value={data.marketingTask?.[id === 'm1' ? 'name1' : 'name2'] || ""} onChange={e => setData({...data, marketingTask: {...data.marketingTask, [id === 'm1' ? 'name1' : 'name2']: e.target.value}})} className="w-full bg-white/5 border p-2 text-[9px] font-black outline-none" />
+                     </div>
+                   ))}
+                </div>
+                <button onClick={() => save({ marketingTask: data.marketingTask })} className="w-full py-2 bg-white/10 text-[9px] font-black uppercase hover:bg-white/20">Sync Strategy Configuration</button>
+             </div>
+          </div>
+       </div>
+
+       {/* HISTORY: FIXED MANUAL LOGGING */}
+       <div className="space-y-4 border-t border-current border-opacity-10 pt-8">
+          <div className="flex justify-between items-center text-left">
+             <span className="text-[10px] font-black uppercase tracking-widest opacity-80 block">Verified History Log</span>
+             <button onClick={() => {
+                const newTask = { 
+                  date: new Date().toISOString().split('T')[0], 
+                  type: 'Charity', 
+                  task: 'NEW PROJECT NAME', 
+                  amount: '0.0 SOL', 
+                  link: '' 
+                };
+                save({ history: [newTask, ...(data.history || [])] });
+             }} className="text-[8px] font-black uppercase border border-current px-2 py-1 hover:bg-white hover:text-black transition-all">+ Log Artifact</button>
+          </div>
+          <div className="space-y-4">
+             {(data.history || []).map((item, i) => (
+                <div key={i} className="flex flex-col gap-3 bg-white/5 p-4 border border-current border-opacity-10 text-left relative group">
+                   
+                   {/* ROW 1: CATEGORY & AMOUNT */}
+                   <div className="flex items-center gap-3">
+                      <div className="flex flex-col gap-1">
+                         <label className="text-[6px] uppercase opacity-30 flex items-center gap-1"><Layers size={8}/> Category</label>
+                         <select 
+                           value={item.type} 
+                           onChange={e => { const h = [...data.history]; h[i].type = e.target.value; setData({...data, history: h}); }}
+                           className="bg-black/40 border border-white/10 text-[8px] font-black uppercase outline-none p-1"
+                         >
+                            <option value="Charity">Charity</option>
+                            <option value="Strategy">Strategy</option>
+                            <option value="Giveaway">Giveaway</option>
+                            <option value="Burn">Burn</option>
+                         </select>
+                      </div>
+                      <div className="flex flex-col gap-1 flex-1">
+                         <label className="text-[6px] uppercase opacity-30 flex items-center gap-1"><Zap size={8}/> Amount</label>
+                         <input 
+                           value={item.amount} 
+                           onChange={e => { const h = [...data.history]; h[i].amount = e.target.value; setData({...data, history: h}); }} 
+                           placeholder="0.0 SOL"
+                           className="w-full bg-transparent border-b border-white/10 text-[9px] italic font-black outline-none" 
+                         />
+                      </div>
+                      <button onClick={() => { const h = [...data.history]; h.splice(i, 1); save({ history: h }); }} className="text-red-500 hover:bg-red-500/10 p-2 rounded transition-colors self-end"><Trash2 size={14}/></button>
+                   </div>
+
+                   {/* ROW 2: TASK NAME */}
+                   <div className="flex flex-col gap-1">
+                      <label className="text-[6px] uppercase opacity-30 flex items-center gap-1"><Cpu size={8}/> Task / Description</label>
+                      <input 
+                        value={item.task} 
+                        onChange={e => { const h = [...data.history]; h[i].task = e.target.value.toUpperCase(); setData({...data, history: h}); }} 
+                        className="w-full bg-transparent border-b border-white/10 text-[9px] font-black uppercase outline-none" 
+                        placeholder="ENTER TASK NAME..."
+                      />
+                   </div>
+
+                   {/* ROW 3: PROOF LINK */}
+                   <div className="flex flex-col gap-1">
+                      <label className="text-[6px] uppercase opacity-30 flex items-center gap-1"><ExternalLink size={8}/> Proof Link (Solscan)</label>
+                      <input 
+                        placeholder="https://solscan.io/tx/..." 
+                        value={item.link || ""} 
+                        onChange={e => { const h = [...data.history]; h[i].link = e.target.value; setData({...data, history: h}); }} 
+                        className="w-full bg-black/20 text-[7px] font-mono p-2 outline-none border border-white/5 opacity-60 focus:opacity-100" 
+                      />
+                   </div>
+
+                   <div className="absolute top-2 right-2 text-[6px] opacity-10 font-mono tracking-tighter">ARTIFACT_#{data.history.length - i}</div>
+                </div>
+             ))}
+             {data.history?.length > 0 && (
+                <button onClick={() => save({ history: data.history })} className="w-full py-3 bg-white text-black font-black text-[9px] uppercase hover:bg-zinc-200 transition-all shadow-[0_0_20px_rgba(255,255,255,0.05)] flex items-center justify-center gap-2">
+                   <Save size={12}/> Finalize Signal History
+                </button>
+             )}
+          </div>
+       </div>
+    </div>
+  );
+};
+
 
 // --- CHAT MODULE ---
 export const ChatApp = ({ db, auth, appId, darkMode, setView }) => {
@@ -486,7 +767,7 @@ export const ChatApp = ({ db, auth, appId, darkMode, setView }) => {
   const adminRef = useRef(null);
   const longPressTimer = useRef(null);
   const touchStartPos = useRef({ x: 0, y: 0 });
-  const CA_INTERNAL = "4myTk24zifHrLYTL5eD3ZnK9PuKyPBcKQvEzc7MPpump";
+  const CA_INTERNAL = "Coming Soon...";
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -737,161 +1018,6 @@ export const ChatApp = ({ db, auth, appId, darkMode, setView }) => {
 };
 
 
-// --- MODULE 2: MASTER ADMIN PANEL (God Mode) ---
-export const MasterAdminPanel = ({ db, appId, setView }) => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!db || !appId) return;
-    const govDoc = doc(db, 'artifacts', appId, 'public', 'data', 'governance', 'state');
-    return onSnapshot(govDoc, (snap) => {
-      if (snap.exists()) setData(snap.data());
-      setLoading(false);
-    });
-  }, [db, appId]);
-
-  const save = async (updates) => {
-    setSaving(true);
-    const govDoc = doc(db, 'artifacts', appId, 'public', 'data', 'governance', 'state');
-    try {
-      // FIX: Ensure numeric casting for inputs to prevent sync issues
-      if (updates.allocatedBalance !== undefined) updates.allocatedBalance = Number(updates.allocatedBalance);
-      if (updates.charityTask?.target !== undefined) updates.charityTask.target = Number(updates.charityTask.target);
-      if (updates.marketingTask?.target !== undefined) updates.marketingTask.target = Number(updates.marketingTask.target);
-      
-      await updateDoc(govDoc, updates);
-    } catch (e) { console.error("Save Error", e); }
-    setSaving(false);
-  };
-
-  const handleResetSlot = async (taskId, category) => {
-    const govDoc = doc(db, 'artifacts', appId, 'public', 'data', 'governance', 'state');
-    const updates = { [`votes.${taskId}`]: 0 };
-    if (category === 'charity') {
-      updates.charityTask = { ...data.charityTask, [taskId === 'c1' ? 'name1' : 'name2']: '', [taskId === 'c1' ? 'link1' : 'link2']: '', [taskId === 'c1' ? 'img1' : 'img2']: '' };
-    } else {
-      updates.marketingTask = { ...data.marketingTask, [taskId === 'm1' ? 'name1' : 'name2']: '' };
-    }
-    await updateDoc(govDoc, updates);
-  };
-
-  if (loading || !data) return <div className="p-20 text-center opacity-40 font-mono uppercase text-xs animate-pulse">Syncing Master Node...</div>;
-
-  return (
-    <div className="w-full space-y-12 animate-fade-in font-mono pb-20 text-left">
-       <header className="flex justify-between items-center border-b border-red-500/20 pb-4">
-          <h3 className="text-xl font-black italic uppercase text-red-500 flex items-center gap-2"><Cpu size={20}/> ADMIN PANEL</h3>
-          <button onClick={() => setView('home')} className="text-[9px] uppercase font-black opacity-40 hover:opacity-100 transition-opacity">Exit Panel</button>
-       </header>
-
-       {/* GLOBAL: NOTICE SECTION */}
-       <div className="p-4 border border-current border-opacity-10 bg-white/[0.02] space-y-4">
-          <div className="space-y-2">
-             <label className="text-[8px] font-black uppercase opacity-40 block">Official Notice Statement</label>
-             <textarea value={data.notice || ""} onChange={e => setData({...data, notice: e.target.value})} className="w-full bg-white/5 border border-current border-opacity-10 p-3 text-[10px] font-bold h-20 outline-none focus:border-red-500/50" />
-          </div>
-          <button onClick={() => save({ notice: data.notice })} className="w-full py-2 bg-white text-black font-black uppercase text-[10px] flex items-center justify-center gap-2 hover:bg-zinc-200">
-             {saving ? <RefreshCw className="animate-spin" size={12}/> : <Save size={12}/>} Update Announcement
-          </button>
-       </div>
-
-       {/* GLOBAL: ALLOCATED SECTION */}
-       <div className="p-4 border border-current border-opacity-10 bg-white/[0.02] space-y-4">
-          <div className="space-y-2 text-left">
-             <label className="text-[8px] font-black uppercase opacity-40 block">Allocated SOL (Real-time)</label>
-             <input 
-               type="number" 
-               value={data.allocatedBalance === 0 ? "" : data.allocatedBalance} 
-               placeholder="0.00"
-               onChange={e => setData({...data, allocatedBalance: e.target.value === "" ? 0 : parseFloat(e.target.value)})} 
-               className="w-full bg-white/5 border border-current border-opacity-10 p-3 text-xs font-black outline-none focus:border-red-500/50" 
-             />
-          </div>
-          <button onClick={() => save({ allocatedBalance: data.allocatedBalance })} className="w-full py-2 bg-red-500 text-black font-black uppercase text-[10px] flex items-center justify-center gap-2 hover:bg-red-400">
-             {saving ? <RefreshCw className="animate-spin" size={12}/> : <Save size={12}/>} Sync Allocation
-          </button>
-       </div>
-
-       <div className="space-y-8 border-t border-current border-opacity-10 pt-8">
-          <div className="space-y-6">
-             <span className="text-[10px] font-black uppercase tracking-widest opacity-80 block">Active Proposals Logic</span>
-             
-             {/* Charity Configuration */}
-             <div className="p-4 border border-dashed border-current border-opacity-20 space-y-6">
-                <div className="flex justify-between items-center"><span className="text-[8px] font-black uppercase opacity-40">Charity Section</span></div>
-                <div className="space-y-6">
-                   <div className="space-y-1">
-                      <label className="text-[7px] uppercase opacity-30">Goal Target (SOL)</label>
-                      <input type="number" value={data.charityTask?.target || ""} onChange={e => setData({...data, charityTask: {...data.charityTask, target: e.target.value}})} className="w-24 bg-white/5 border p-2 text-xs font-black outline-none" />
-                   </div>
-                   {['c1', 'c2'].map(id => (
-                     <div key={id} className="space-y-2 border-b border-white/5 pb-4 text-left">
-                        <div className="flex justify-between items-center mb-1">
-                           <span className="text-[7px] font-black opacity-30 uppercase">Option {id.toUpperCase()} (Votes: {data.votes?.[id] || 0})</span>
-                           <button onClick={() => handleResetSlot(id, 'charity')} className="text-red-500 hover:text-red-400"><Trash2 size={12}/></button>
-                        </div>
-                        <input placeholder="Name" value={data.charityTask?.[id === 'c1' ? 'name1' : 'name2'] || ""} onChange={e => setData({...data, charityTask: {...data.charityTask, [id === 'c1' ? 'name1' : 'name2']: e.target.value}})} className="w-full bg-white/5 border p-2 text-[9px] font-black outline-none" />
-                        <div className="grid grid-cols-2 gap-2">
-                           <input placeholder="Link" value={data.charityTask?.[id === 'c1' ? 'link1' : 'link2'] || ""} onChange={e => setData({...data, charityTask: {...data.charityTask, [id === 'c1' ? 'link1' : 'link2']: e.target.value}})} className="bg-white/5 border p-2 text-[8px] font-mono outline-none" />
-                           <input placeholder="Img URL" value={data.charityTask?.[id === 'c1' ? 'img1' : 'img2'] || ""} onChange={e => setData({...data, charityTask: {...data.charityTask, [id === 'c1' ? 'img1' : 'img2']: e.target.value}})} className="bg-white/5 border p-2 text-[8px] font-mono outline-none" />
-                        </div>
-                     </div>
-                   ))}
-                </div>
-                <button onClick={() => save({ charityTask: data.charityTask })} className="w-full py-2 bg-white/10 text-[9px] font-black uppercase hover:bg-white/20">Sync Charity Configuration</button>
-             </div>
-
-             {/* Marketing Configuration */}
-             <div className="p-4 border border-dashed border-current border-opacity-20 space-y-6">
-                <span className="text-[8px] font-black uppercase opacity-40">Growth Section</span>
-                <div className="space-y-4">
-                   <div className="space-y-1">
-                      <label className="text-[7px] uppercase opacity-30">Goal Target (SOL)</label>
-                      <input type="number" value={data.marketingTask?.target || ""} onChange={e => setData({...data, marketingTask: {...data.marketingTask, target: e.target.value}})} className="w-24 bg-white/5 border p-2 text-xs font-black outline-none" />
-                   </div>
-                   {['m1', 'm2'].map(id => (
-                     <div key={id} className="space-y-2 border-b border-white/5 pb-4 text-left">
-                        <div className="flex justify-between items-center mb-1">
-                           <span className="text-[7px] font-black opacity-30 uppercase">Option {id.toUpperCase()} (Votes: {data.votes?.[id] || 0})</span>
-                           <button onClick={() => handleResetSlot(id, 'marketing')} className="text-red-500 hover:text-red-400"><Trash2 size={12}/></button>
-                        </div>
-                        <input placeholder="Strategy Name" value={data.marketingTask?.[id === 'm1' ? 'name1' : 'name2'] || ""} onChange={e => setData({...data, marketingTask: {...data.marketingTask, [id === 'm1' ? 'name1' : 'name2']: e.target.value}})} className="w-full bg-white/5 border p-2 text-[9px] font-black outline-none" />
-                     </div>
-                   ))}
-                </div>
-                <button onClick={() => save({ marketingTask: data.marketingTask })} className="w-full py-2 bg-white/10 text-[9px] font-black uppercase hover:bg-white/20">Sync Strategy Configuration</button>
-             </div>
-          </div>
-       </div>
-
-       {/* HISTORY: MANUAL ENTRIES */}
-       <div className="space-y-4 border-t border-current border-opacity-10 pt-8">
-          <div className="flex justify-between items-center text-left">
-             <span className="text-[10px] font-black uppercase tracking-widest opacity-80 block">Verified History Log</span>
-             <button onClick={() => {
-                const newTask = { date: new Date().toISOString().split('T')[0], type: 'Manual', task: 'Adjustment', amount: '0.0 SOL', link: '' };
-                save({ history: [newTask, ...(data.history || [])] });
-             }} className="text-[8px] font-black uppercase border border-current px-2 py-1 hover:bg-white hover:text-black transition-all">+ Log Artifact</button>
-          </div>
-          <div className="space-y-2">
-             {(data.history || []).map((item, i) => (
-                <div key={i} className="flex flex-col gap-2 bg-white/5 p-3 border border-current border-opacity-10 text-left">
-                   <div className="flex gap-2">
-                      <input value={item.task} onChange={e => { const h = [...data.history]; h[i].task = e.target.value.toUpperCase(); setData({...data, history: h}); }} className="flex-1 bg-transparent text-[9px] font-black uppercase outline-none" />
-                      <input value={item.amount} onChange={e => { const h = [...data.history]; h[i].amount = e.target.value; setData({...data, history: h}); }} className="w-16 bg-transparent text-[9px] italic outline-none text-right" />
-                      <button onClick={() => { const h = [...data.history]; h.splice(i, 1); save({ history: h }); }} className="text-red-500 transition-colors hover:text-red-400"><Trash2 size={12}/></button>
-                   </div>
-                   <input placeholder="Solscan Proof Link" value={item.link || ""} onChange={e => { const h = [...data.history]; h[i].link = e.target.value; setData({...data, history: h}); }} className="w-full bg-black/40 text-[7px] font-mono p-1 outline-none opacity-60 focus:opacity-100" />
-                </div>
-             ))}
-             {data.history?.length > 0 && <button onClick={() => save({ history: data.history })} className="w-full py-2 bg-white text-black font-black text-[9px] uppercase hover:bg-zinc-200 transition-all">Force Sync History</button>}
-          </div>
-       </div>
-    </div>
-  );
-};
 
 
 // --- MAIN APP ---
@@ -902,7 +1028,7 @@ const App = () => {
   const [showModal, setShowModal] = useState(false);
   const [showXNote, setShowXNote] = useState(false);
   const [logoPulse, setLogoPulse] = useState(false);
-  const ca = "4myTk24zifHrLYTL5eD3ZnK9PuKyPBcKQvEzc7MPpump";
+  const ca = "Coming Soon...";
 
   // AI State Logic
   const [uploadImage, setUploadImage] = useState(null);
