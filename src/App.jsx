@@ -1300,7 +1300,7 @@ const App = () => {
           </button>
           
           <div className="text-right border-r-[8px] pr-6 border-current border-opacity-10 font-mono font-black italic tracking-tight leading-none opacity-80 uppercase text-current">
-            <p className="text-[18px] md:text-[22px] mb-2 leading-none">You already know why.</p>
+            <p className="text-[18px] md:text-[22px] mb-2 leading-none">Built to be right.</p>
           </div>
 
           <div className="flex gap-10">
